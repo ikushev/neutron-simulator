@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-academic-bg: #FBFBFB;
+  --color-academic-text: #111827;
+  --color-academic-border: #E5E7EB;
+  --color-academic-fast: #3730A3;
+  --color-academic-thermal: #BE123C;
+
+  --color-sidebar-bg: #FFFFFF;
+  --color-sidebar-border: #F3F4F6;
+  --color-sidebar-text: #6B7280;
+  --color-sidebar-active-bg: #F9FAFB;
+
+  --animate-spin-slow: spin 3s linear infinite;
+}
+
+.dark {
+  --color-academic-bg: #0A0A0B;
+  --color-academic-text: #F9FAFB;
+  --color-academic-border: #1F2937;
+  --color-academic-fast: #818CF8;
+  --color-academic-thermal: #FB7185;
+  
+  --color-sidebar-bg: #0A0A0B;
+  --color-sidebar-border: #1F2937;
+  --color-sidebar-text: #9CA3AF;
+  --color-sidebar-active-bg: #111827;
+}
+
+@layer base {
+  body {
+    @apply bg-academic-bg text-academic-text font-sans antialiased selection:bg-academic-fast/20;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .academic-card {
+    @apply bg-white dark:bg-academic-bg border border-academic-border dark:border-white/5 rounded-sm transition-colors;
+    @apply dark:shadow-[inset_0_1px_2px_rgba(129,139,248,0.05)];
+  }
+  
+  .academic-input {
+    @apply bg-gray-50 dark:bg-academic-border/30 border-none text-academic-text rounded-sm focus:ring-1 focus:ring-academic-fast transition-all;
+    @apply focus:outline-none focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-academic-bg;
+  }
+
+  /* Custom Recharts Tooltip Styling */
+  .recharts-default-tooltip {
+    @apply !bg-academic-text !border-none !rounded-sm !shadow-2xl !p-4 !text-[10px] !font-bold !text-white !opacity-95 !backdrop-blur-md;
+  }
+  
+  .recharts-tooltip-label {
+    @apply !mb-2 !border-b !border-white/10 !pb-2 !tracking-widest !uppercase !text-gray-400;
+  }
+}
+
+.math-block {
+  @apply p-4 bg-white dark:bg-academic-border/10 border border-gray-100 dark:border-white/5 shadow-sm rounded-sm my-4 min-h-[60px] flex items-center justify-center;
+}
+
+input[type="range"] {
+  @apply h-1.5 bg-gray-200 dark:bg-academic-border rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-academic-fast focus:ring-offset-2 dark:focus:ring-offset-academic-bg;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 rounded-full bg-academic-fast border-2 border-white shadow-md;
+}
+
+@media print {
+  aside, .no-print, header:not(.print-header) {
+    display: none !important;
+  }
+  main {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .flex-1.overflow-y-auto {
+    overflow: visible !important;
+  }
+  .academic-card {
+    border: 1px solid #000 !important;
+    break-inside: avoid;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .recharts-responsive-container {
+    width: 100% !important;
+    height: 400px !important;
+  }
+}
+
