@@ -110,20 +110,34 @@ async function startServer() {
     res.json({ status: 'ok' });
   });
 
-  // Vite middleware for development
+  // Serve static files and handle SPA routing
+  const distPath = path.join(__dirname, 'dist');
+  
   if (process.env.NODE_ENV !== 'production') {
+    // Vite middleware for development
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    // Production: serve static files from dist
+    app.use(express.static(distPath, { index: 'index.html' }));
   }
+  
+  // SPA fallback: serve index.html for any non-API, non-static route
+  app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    // Serve index.html for SPA client-side routing
+    if (process.env.NODE_ENV !== 'production') {
+      // In dev mode, Vite handles this
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
 
   httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
