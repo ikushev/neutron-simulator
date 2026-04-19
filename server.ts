@@ -5,6 +5,7 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import net from 'net';
+import fs from 'fs';
 
 import dotenv from 'dotenv';
 
@@ -53,6 +54,16 @@ async function startServer() {
   // Find an available port (prefer PORT env var, then try alternatives)
   const preferredPort = parseInt(process.env.PORT || '3000', 10);
   const PORT = await findAvailablePort(preferredPort);
+  
+  const isProduction = process.env.NODE_ENV === 'production';
+  const distPath = path.resolve(__dirname, 'dist');
+  const rootPath = path.resolve(__dirname);
+
+  // Log environment for debugging
+  console.log(`[v0] Environment: ${isProduction ? 'production' : 'development'}`);
+  console.log(`[v0] Root path: ${rootPath}`);
+  console.log(`[v0] Dist path: ${distPath}`);
+  console.log(`[v0] NEXT_PUBLIC_SOCKET_URL: ${process.env.NEXT_PUBLIC_SOCKET_URL ? '[SET]' : '[NOT SET]'}`);
 
   // Real-time states
   const roomStates = new Map();
@@ -105,42 +116,80 @@ async function startServer() {
     });
   });
 
-  // API Routes
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok' });
+  // ==================== API ROUTES (FIRST) ====================
+  
+  // Health check endpoint for diagnostics
+  app.get('/health', (req, res) => {
+    res.send('Server is alive');
   });
 
-  // Serve static files and handle SPA routing
-  const distPath = path.join(__dirname, 'dist');
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      port: PORT,
+      mode: isProduction ? 'production' : 'development',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // ==================== VITE MIDDLEWARE (SECOND) ====================
   
-  if (process.env.NODE_ENV !== 'production') {
-    // Vite middleware for development
+  if (!isProduction) {
+    // Development: Use Vite as middleware
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      root: rootPath,
+      server: { 
+        middlewareMode: true,
+        hmr: {
+          port: 24678
+        }
+      },
       appType: 'spa',
     });
+    
+    // Vite middleware handles ALL requests in dev mode (including index.html)
     app.use(vite.middlewares);
+    
+    console.log(`[v0] Vite middleware attached for development`);
   } else {
-    // Production: serve static files from dist
-    app.use(express.static(distPath, { index: 'index.html' }));
+    // Production: Serve static files from dist
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath, { index: 'index.html' }));
+      console.log(`[v0] Serving static files from: ${distPath}`);
+    } else {
+      console.warn(`[v0] Warning: dist folder not found at ${distPath}`);
+    }
   }
+
+  // ==================== SPA FALLBACK (LAST) ====================
   
-  // SPA fallback: serve index.html for any non-API, non-static route
   app.get('*', (req, res, next) => {
-    // Skip API routes
-    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+    // Skip API and socket.io routes
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io') || req.path === '/health') {
       return next();
     }
-    // Serve index.html for SPA client-side routing
-    if (process.env.NODE_ENV !== 'production') {
-      // In dev mode, Vite handles this
+    
+    // In dev mode, Vite middleware already handles this
+    if (!isProduction) {
       return next();
     }
-    res.sendFile(path.join(distPath, 'index.html'));
+    
+    // Production: serve index.html for SPA client-side routing
+    const indexPath = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send('index.html not found in dist folder');
+    }
   });
 
+  // ==================== START SERVER ====================
+  
   httpServer.listen(PORT, '0.0.0.0', () => {
+    // Special log format for v0 sandbox port detection
+    console.log(`V0_PORT_DETECTION: LISTENING ON PORT ${PORT}`);
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
   });
 }
 

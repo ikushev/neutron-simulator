@@ -16,9 +16,14 @@ export default defineConfig(({mode}) => {
       },
     },
     server: {
+      // Middleware mode for Express integration
       middlewareMode: true,
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      hmr: process.env.DISABLE_HMR !== 'true',
+      // Bind to all interfaces so v0 sandbox can detect
+      host: true,
+      // HMR configuration
+      hmr: process.env.DISABLE_HMR !== 'true' ? {
+        port: 24678
+      } : false,
     },
   };
 });
