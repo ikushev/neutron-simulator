@@ -5,6 +5,12 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config({ path: '/vercel/share/.env.project' });
+dotenv.config({ path: '/vercel/share/.env.snowflake' });
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -18,7 +24,8 @@ async function startServer() {
     }
   });
 
-  const PORT = 3000;
+  // Use port 5173 for development (Vite default), allow override via PORT env
+  const PORT = parseInt(process.env.PORT || '5173', 10);
 
   // Real-time states
   const roomStates = new Map();
