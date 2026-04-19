@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import net from 'net';
 
 import dotenv from 'dotenv';
 
@@ -13,6 +14,31 @@ dotenv.config({ path: '/vercel/share/.env.snowflake' });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Check if a port is available
+function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close();
+      resolve(true);
+    });
+    server.listen(port, '0.0.0.0');
+  });
+}
+
+// Find an available port starting from the preferred one
+async function findAvailablePort(preferredPort: number): Promise<number> {
+  const portsToTry = [preferredPort, 3001, 3002, 5173, 8080];
+  for (const port of portsToTry) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  // If all preferred ports are taken, let OS assign one
+  return 0;
+}
 
 async function startServer() {
   const app = express();
@@ -24,8 +50,9 @@ async function startServer() {
     }
   });
 
-  // Use port 5173 for development (Vite default), allow override via PORT env
-  const PORT = parseInt(process.env.PORT || '5173', 10);
+  // Find an available port (prefer PORT env var, then try alternatives)
+  const preferredPort = parseInt(process.env.PORT || '3000', 10);
+  const PORT = await findAvailablePort(preferredPort);
 
   // Real-time states
   const roomStates = new Map();
